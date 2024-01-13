@@ -6,7 +6,7 @@ import shutil
 
 guid_regex = r'[0-9A-Fa-f]{8}[-]?[0-9A-Fa-f]{4}[-]?[0-9A-Fa-f]{4}[-]?[0-9A-Fa-f]{4}[-]?[0-9A-Fa-f]{12}'
 property_regex = r"([a-zA-Z\._-]+):: (.*)"
-watermark_html = "<h6>created with <code>Logseq2HTML.py</code></h6>"
+watermark_html = "<h6>created with <a href=\"https://github.com/sinibida/Logseq2HTMLpy\">Logseq2HTML.py</a></h6>"
 
 def get_properties(text):
     ret = dict()
