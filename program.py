@@ -3,6 +3,7 @@ import re # https://docs.python.org/3/library/re.html
 import os
 import os.path as path
 import shutil
+import markdown
 
 guid_regex = r'[0-9A-Fa-f]{8}[-]?[0-9A-Fa-f]{4}[-]?[0-9A-Fa-f]{4}[-]?[0-9A-Fa-f]{4}[-]?[0-9A-Fa-f]{12}'
 property_regex = r"([a-zA-Z\._-]+):: (.*)"
@@ -90,7 +91,7 @@ def find_block_with_id(blocks, id):
             return x
     return None
 
-def format_block_content(s: str):
+def prepare_block_content(s: str):
     if s.startswith('- '):
         s = s[2:]
     s = s.replace('\\mu', 'η')
@@ -98,34 +99,19 @@ def format_block_content(s: str):
     s = s.replace('->', '→')
     s = s.replace('\\larr', '←')
     s = s.replace('<-', '←')
-    s = s.replace('\n', '<br/>');
-    s = re.sub(
-        r"(?:^> .+(?:\n|$))+",
-        lambda m: f"<blockquote>{re.sub('> ', '', m.group(0))}</blockquote>",
-        s
-    )
-    s = re.sub(
-        r"~{2}([^~]+)~{2}",
-        r"<s>\1</s>",
-        s
-    )
-    s = re.sub(
-        r"\*{2}([^\*]+)\*{2}",
-        r"<b>\1</b>",
-        s
-    )
-    s = re.sub(
-        r"\*([^\*]+)\*",
-        r"<i>\1</i>",
-        s
-    )
+    # s = s.replace('\n', '<br/>');
     return s
 
-def get_block_title(block):
+def format_block_content(s: str):
+    s = prepare_block_content(s)
+    s = markdown.markdown(s)
+    return s
+
+def get_block_title(block, shorten_thr=32):
     child_shortened = block['content'].partition('\n')[0]
-    if len(child_shortened) > 100:
-        child_shortened = f"{child_shortened[:100]}..."
-    return format_block_content(child_shortened)
+    if len(child_shortened) > shorten_thr:
+        child_shortened = f"{child_shortened[:shorten_thr]}..."
+    return prepare_block_content(child_shortened)
 
 def anchor_to_block(block, title=None):
     if block == None:
@@ -154,9 +140,11 @@ def blocks_to_html(blocks):
         if len(block['children']) > 0 and block['id'] != None:
             s += anchor_to_block(block)
         else:
-            s += anchor_to_block(block, title='(#)')
-            s += '&nbsp;'
-            s += replace_internal_link(format_block_content(block['content']))
+            c = ""
+            c += anchor_to_block(block, title='(#)')
+            c += '&nbsp;'
+            c += prepare_block_content(block['content'])
+            s += format_block_content(replace_internal_link(c))
             if len(block['children']) > 0:
                 s += blocks_to_html(block['children'])
         s += "</li>"
@@ -178,8 +166,8 @@ def write_html(dir, block, template):
     html_content = ""
 
     block_html_content:str = block['content']
-    block_html_content = format_block_content(block_html_content);
     block_html_content = replace_internal_link(block_html_content)
+    block_html_content = format_block_content(block_html_content);
     
     html_content += block_html_content
     html_content += properties_to_html(get_properties(block['parameter_content']))
